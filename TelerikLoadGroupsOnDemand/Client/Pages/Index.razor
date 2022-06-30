@@ -5,6 +5,12 @@
 
 <h1>@PageTile</h1>
 
+<TelerikLoaderContainer OverlayThemeColor="light" Visible="@IsLoading">
+    <Template>
+        <TelerikLoader Size="@ThemeConstants.Loader.Size.Large" />
+    </Template>
+</TelerikLoaderContainer>
+
 <TelerikGrid @ref="@Grid"
              TItem="@object"
              FilterMode="@GridFilterMode.FilterMenu"
@@ -17,6 +23,10 @@
              PageSize="20"
              OnStateInit="@GridOnStateInit"
              OnRead="@OnReadItemsAsync">
+    <GridSettings>
+        <GridColumnMenuSettings Lockable="@false" 
+                                ShowColumnChooser="@false" />
+    </GridSettings>
     <GridToolBar>
         <div class="block grow-1">
             <label for="groupBy" class="mt-2">Group By:</label>
@@ -75,12 +85,12 @@
         
         if (response.Success)
         {
+            var data = response.Data ?? new List<Part>();
+
             args.Data = args.Request.Groups.Count > 0
                 ? response.GroupedData
-                : response.Data != null 
-                    ? response.Data.ToList() 
-                    : new List<Part>();
-                
+                : data;
+            
             args.Total = response.TotalResults;
         }
         else
