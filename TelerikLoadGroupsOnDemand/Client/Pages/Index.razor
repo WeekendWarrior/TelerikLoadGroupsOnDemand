@@ -45,11 +45,14 @@
     <GridColumns>
         <GridColumn Field="@nameof(Part.Mpn)"
                     Title="MPN"
+                    FieldType="@(typeof(string))"
                     Width="125px"/>
         <GridColumn Field="@nameof(Part.Cipn)"
+                    FieldType="@(typeof(string))"
                     Title="CIPN"
                     Width="125px"/>
         <GridColumn Field="@nameof(Part.CustomerName)"
+                    FieldType="@(typeof(string))"
                     Title="Customer Name"
                     Width="100px"/>
     </GridColumns>
