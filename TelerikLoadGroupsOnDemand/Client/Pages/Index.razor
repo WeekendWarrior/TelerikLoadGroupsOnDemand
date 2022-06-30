@@ -1,9 +1,128 @@
 ﻿@page "/"
+@inject PartsService PartsService
 
-<PageTitle>Index</PageTitle>
+<PageTitle>@PageTile</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>@PageTile</h1>
 
-Welcome to your new app.
+<TelerikGrid @ref="@Grid"
+             TItem="@object"
+             FilterMode="@GridFilterMode.FilterMenu"
+             ShowColumnMenu="@true"
+             Sortable="@true"
+             Resizable="@true"
+             Reorderable="@true"
+             Pageable="@true"
+             LoadGroupsOnDemand="@true"
+             PageSize="20"
+             OnStateInit="@GridOnStateInit"
+             OnRead="@OnReadItemsAsync">
+    <GridToolBar>
+        <div class="block grow-1">
+            <label for="groupBy" class="mt-2">Group By:</label>
+            <TelerikDropDownList Id="groupBy"
+                                 @bind-Value="@SelectedGroupBy"
+                                 Data="@_groupByTypes"
+                                 Width="150px"
+                                 Size="@ThemeConstants.DropDownList.Size.Small"
+                                 OnChange="@SelectedGroupByOnChange">
+                <DropDownListSettings>
+                    <DropDownListPopupSettings Height="auto"/>
+                </DropDownListSettings>
+            </TelerikDropDownList>
+        </div>
+    </GridToolBar>
+    <GridColumns>
+        <GridColumn Field="@nameof(Part.Mpn)"
+                    Title="MPN"
+                    Width="125px"/>
+        <GridColumn Field="@nameof(Part.Cipn)"
+                    Title="CIPN"
+                    Width="125px"/>
+        <GridColumn Field="@nameof(Part.CustomerName)"
+                    Title="Customer Name"
+                    Width="100px"/>
+    </GridColumns>
+    <NoDataTemplate>
+        <div>
+            <TelerikIcon Icon="data"/> There is no data to display.
+        </div>
+    </NoDataTemplate>
+</TelerikGrid>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+@code
+{
+    private const string PageTile = "Telerik Load Groups on Demand Test";
+    
+    private bool IsLoading { get; set; }
+    
+    private TelerikGrid<object> Grid { get; set; } = default!;
+
+    private readonly List<PartGroupByType> _groupByTypes = new()
+    {
+        PartGroupByType.None,
+        PartGroupByType.CustomerName,
+        PartGroupByType.Cipn,
+    };
+    
+    private PartGroupByType SelectedGroupBy { get; set; } = PartGroupByType.None;
+    
+    private async Task OnReadItemsAsync(GridReadEventArgs args)
+    {
+        IsLoading = true;
+
+        var response = await PartsService.GetPartsAsync(args.Request);
+        
+        if (response.Success)
+        {
+            args.Data = args.Request.Groups.Count > 0
+                ? response.GroupedData
+                : response.Data != null 
+                    ? response.Data.ToList() 
+                    : new List<Part>();
+                
+            args.Total = response.TotalResults;
+        }
+        else
+        {
+            args.Data = new List<Part>();
+            args.Total = 0;
+        }
+        
+        IsLoading = false;
+    }
+    
+    private static void GridOnStateInit(GridStateEventArgs<object> args) =>
+        args.GridState = BuildDefaultGridState();
+
+    private static GridState<object> BuildDefaultGridState() =>
+        new() { SortDescriptors = BuildDefaultSortDescriptors() };
+
+    private static List<SortDescriptor> BuildDefaultSortDescriptors() =>
+        new() { new() { Member = nameof(Part.CustomerName) } };
+    
+    private void SelectedGroupByOnChange()
+    {
+        if (SelectedGroupBy == PartGroupByType.None)
+        {
+            Grid.SetState(BuildDefaultGridState());
+                
+            return;
+        }
+
+        Grid.SetState(new GridState<object>
+        {
+            GroupDescriptors = new List<GroupDescriptor>
+            {
+                new()
+                {
+                    Member = SelectedGroupBy.ToMemberName(),
+                    MemberType = SelectedGroupBy.ToMemberType(),
+                    SortDirection = SelectedGroupBy.ToListSortDirection()
+                }
+            },
+            SortDescriptors = BuildDefaultSortDescriptors()
+        });
+    }
+
+}
