@@ -54,6 +54,7 @@ public class PartsController : ControllerBase
                 Cipn = $"CIPN{random.Next(0, 10)}",
                 Mpn= $"CIPN{random.Next(0, 50)}",
                 CustomerName = $"customer{random.Next(0, 4)}",
+                CustomerNumber = i
             });
         }
         

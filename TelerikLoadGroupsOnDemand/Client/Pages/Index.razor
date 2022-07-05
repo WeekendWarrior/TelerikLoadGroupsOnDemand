@@ -12,7 +12,7 @@
 </TelerikLoaderContainer>
 
 <TelerikGrid @ref="@Grid"
-             TItem="@object"
+             TItem="@Part"
              FilterMode="@GridFilterMode.FilterMenu"
              ShowColumnMenu="@true"
              Sortable="@true"
@@ -55,6 +55,10 @@
                     FieldType="@(typeof(string))"
                     Title="Customer Name"
                     Width="100px"/>
+        <GridColumn Field="@nameof(Part.CustomerNumber)"
+                    FieldType="@(typeof(int))"
+                    Title="Customer #"
+                    Width="100px"/>
     </GridColumns>
     <NoDataTemplate>
         <div>
@@ -69,7 +73,7 @@
     
     private bool IsLoading { get; set; }
     
-    private TelerikGrid<object> Grid { get; set; } = default!;
+    private TelerikGrid<Part> Grid { get; set; } = default!;
 
     private readonly List<PartGroupByType> _groupByTypes = new()
     {
@@ -104,27 +108,29 @@
         
         IsLoading = false;
     }
-    
-    private static void GridOnStateInit(GridStateEventArgs<object> args) =>
-        args.GridState = BuildDefaultGridState();
 
-    private static GridState<object> BuildDefaultGridState() =>
-        new() { SortDescriptors = BuildDefaultSortDescriptors() };
+    private static void GridOnStateInit(GridStateEventArgs<Part> args) =>
+        args.GridState = new()
+        {
+            SortDescriptors = new List<SortDescriptor> { new() { Member = nameof(Part.CustomerName) } }
+        };
 
-    private static List<SortDescriptor> BuildDefaultSortDescriptors() =>
-        new() { new() { Member = nameof(Part.CustomerName) } };
-    
     private void SelectedGroupByOnChange()
     {
+        var state = Grid.GetState();
+
         if (SelectedGroupBy == PartGroupByType.None)
         {
-            Grid.SetState(BuildDefaultGridState());
+            state.GroupDescriptors = new List<GroupDescriptor>();
+            
+            Grid.SetState(state);
                 
             return;
         }
 
-        Grid.SetState(new GridState<object>
+        Grid.SetState(new GridState<Part>
         {
+            SortDescriptors = state.SortDescriptors,
             GroupDescriptors = new List<GroupDescriptor>
             {
                 new()
@@ -133,8 +139,7 @@
                     MemberType = SelectedGroupBy.ToMemberType(),
                     SortDirection = SelectedGroupBy.ToListSortDirection()
                 }
-            },
-            SortDescriptors = BuildDefaultSortDescriptors()
+            }
         });
     }
 
