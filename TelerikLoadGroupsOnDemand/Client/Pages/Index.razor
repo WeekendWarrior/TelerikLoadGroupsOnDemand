@@ -1,68 +1,95 @@
 ﻿@page "/"
+@using Telerik.Blazor.Components.Common.Icon
 @inject PartsService PartsService
 
-<PageTitle>@PageTile</PageTitle>
+<PageTitle>
+    @PageTile
+</PageTitle>
 
-<h1>@PageTile</h1>
+<h1>
+    @PageTile
+</h1>
 
-<TelerikLoaderContainer OverlayThemeColor="light" Visible="@IsLoading">
+<TelerikLoaderContainer 
+    OverlayThemeColor="light" 
+    Visible="@IsLoading">
     <Template>
         <TelerikLoader Size="@ThemeConstants.Loader.Size.Large" />
     </Template>
 </TelerikLoaderContainer>
 
-<TelerikGrid @ref="@Grid"
-             TItem="@Part"
-             FilterMode="@GridFilterMode.FilterMenu"
-             ShowColumnMenu="@true"
-             Sortable="@true"
-             Resizable="@true"
-             Reorderable="@true"
-             Pageable="@true"
-             LoadGroupsOnDemand="@true"
-             PageSize="20"
-             OnStateInit="@GridOnStateInit"
-             OnRead="@OnReadItemsAsync">
+<TelerikGrid
+    @ref="@Grid"
+    TItem="@Part"
+    FilterMode="@GridFilterMode.FilterMenu"
+    ShowColumnMenu="@true"
+    Sortable="@true"
+    Resizable="@true"
+    Reorderable="@true"
+    Pageable="@true"
+    LoadGroupsOnDemand="@true"
+    PageSize="20"
+    OnStateInit="@GridOnStateInit"
+    OnRead="@OnReadItemsAsync">
+    
     <GridSettings>
-        <GridColumnMenuSettings Lockable="@false" 
-                                ShowColumnChooser="@false" />
+        <GridColumnMenuSettings
+            Lockable="@false"
+            ShowColumnChooser="@false"/>
     </GridSettings>
-    <GridToolBar>
+
+    <GridToolBarTemplate>
         <div class="block grow-1">
-            <label for="groupBy" class="mt-2">Group By:</label>
-            <TelerikDropDownList Id="groupBy"
-                                 @bind-Value="@SelectedGroupBy"
-                                 Data="@_groupByTypes"
-                                 Width="150px"
-                                 Size="@ThemeConstants.DropDownList.Size.Small"
-                                 OnChange="@SelectedGroupByOnChange">
+
+            <label for="groupBy" class="mt-2">
+                Group By:
+            </label>
+
+            <TelerikDropDownList
+                Id="groupBy"
+                @bind-Value="@SelectedGroupBy"
+                Data="@_groupByTypes"
+                Width="150px"
+                Size="@ThemeConstants.DropDownList.Size.Small"
+                OnChange="@SelectedGroupByOnChange">
                 <DropDownListSettings>
                     <DropDownListPopupSettings Height="auto"/>
                 </DropDownListSettings>
             </TelerikDropDownList>
+
         </div>
-    </GridToolBar>
+
+    </GridToolBarTemplate>
+
     <GridColumns>
-        <GridColumn Field="@nameof(Part.Mpn)"
-                    Title="MPN"
-                    FieldType="@(typeof(string))"
-                    Width="125px"/>
-        <GridColumn Field="@nameof(Part.Cipn)"
-                    FieldType="@(typeof(string))"
-                    Title="CIPN"
-                    Width="125px"/>
-        <GridColumn Field="@nameof(Part.CustomerName)"
-                    FieldType="@(typeof(string))"
-                    Title="Customer Name"
-                    Width="100px"/>
-        <GridColumn Field="@nameof(Part.CustomerNumber)"
-                    FieldType="@(typeof(int))"
-                    Title="Customer #"
-                    Width="100px"/>
+        <GridColumn
+            Field="@nameof(Part.Mpn)"
+            Title="MPN"
+            FieldType="@(typeof(string))"
+            Width="125px"/>
+
+        <GridColumn
+            Field="@nameof(Part.Cipn)"
+            FieldType="@(typeof(string))"
+            Title="CIPN"
+            Width="125px"/>
+
+        <GridColumn
+            Field="@nameof(Part.CustomerName)"
+            FieldType="@(typeof(string))"
+            Title="Customer Name"
+            Width="100px"/>
+
+        <GridColumn
+            Field="@nameof(Part.CustomerNumber)"
+            FieldType="@(typeof(int))"
+            Title="Customer #"
+            Width="100px"/>
     </GridColumns>
     <NoDataTemplate>
         <div>
-            <TelerikIcon Icon="data"/> There is no data to display.
+            <TelerikIcon Icon="@SvgIcon.Data"/> 
+            There is no data to display.
         </div>
     </NoDataTemplate>
 </TelerikGrid>
@@ -73,7 +100,7 @@
     
     private bool IsLoading { get; set; }
     
-    private TelerikGrid<Part> Grid { get; set; } = default!;
+    private TelerikGrid<Part>? Grid { get; set; }
 
     private readonly List<PartGroupByType> _groupByTypes = new()
     {
@@ -117,18 +144,20 @@
 
     private void SelectedGroupByOnChange()
     {
+        if (Grid is null) return;
+        
         var state = Grid.GetState();
 
         if (SelectedGroupBy == PartGroupByType.None)
         {
             state.GroupDescriptors = new List<GroupDescriptor>();
             
-            Grid.SetState(state);
+            Grid.SetStateAsync(state);
                 
             return;
         }
 
-        Grid.SetState(new GridState<Part>
+        Grid.SetStateAsync(new GridState<Part>
         {
             SortDescriptors = state.SortDescriptors,
             GroupDescriptors = new List<GroupDescriptor>
