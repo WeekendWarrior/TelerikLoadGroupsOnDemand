@@ -1,22 +1,12 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿namespace TelerikLoadGroupsOnDemand.Server.Controllers;
 
-namespace TelerikLoadGroupsOnDemand.Server.Controllers;
-
-[ApiController]
-[Route("[controller]")]
+[ApiController, Route("[controller]")]
 public class PartsController : ControllerBase
 {
-    private readonly IMemoryCache _memoryCache;
-
-    public PartsController(IMemoryCache memoryCache)
-    {
-        _memoryCache = memoryCache;
-    }
-    
     [HttpPost]
     public async Task<IActionResult> Get([FromBody] DataSourceRequest request)
     {
-        var parts = BuildSomeParts().ToList();
+        var parts = (await BuildSomePartsAsync()).ToList();
 
         var dataSourceResult = await parts.ToDataSourceResultAsync(request);
         
@@ -35,13 +25,11 @@ public class PartsController : ControllerBase
         return Ok(response);
     }
 
-    private IEnumerable<Part> BuildSomeParts()
+    /// <summary>
+    /// Builds a fake <see cref="Part" /> list.
+    /// </summary>
+    private static async Task<IEnumerable<Part>> BuildSomePartsAsync()
     {
-        var cacheKey = $"{nameof(PartsController)}.{nameof(BuildSomeParts)}";
-        
-        // Available in cache?
-        if (_memoryCache.TryGetValue(cacheKey, out IEnumerable<Part> cachedParts)) return cachedParts;
-
         // Generate new parts.
         var random = new Random();
         var parts = new List<Part>();
@@ -58,9 +46,9 @@ public class PartsController : ControllerBase
             });
         }
         
-        // Cache for 60 minutes.
-        _memoryCache.Set(cacheKey, parts, TimeSpan.FromMinutes(60));
-
+        // Add a delay to simulate a slow response.
+        await Task.Delay(1000);
+        
         return parts;
     }
 }

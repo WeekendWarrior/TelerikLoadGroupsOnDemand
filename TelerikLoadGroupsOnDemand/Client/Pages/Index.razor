@@ -21,7 +21,10 @@
 <TelerikGrid
     @ref="@Grid"
     TItem="@Part"
+    Size="@ThemeConstants.Grid.Size.Small"
     FilterMode="@GridFilterMode.FilterMenu"
+    @bind-SelectedItems="@SelectedParts"
+    SelectionMode="@GridSelectionMode.Multiple"
     ShowColumnMenu="@true"
     Sortable="@true"
     Resizable="@true"
@@ -39,12 +42,34 @@
     </GridSettings>
 
     <GridToolBarTemplate>
-        <div class="block grow-1">
 
-            <label for="groupBy" class="mt-2">
+        <div class="block grow-1">
+            <TelerikButton 
+                Enabled="@(!IsLoading)"
+                Icon="@SvgIcon.Rotate"
+                OnClick="@ReloadOnClick">
+                Reload
+            </TelerikButton>
+        </div>
+        
+        <div class="block grow-1 text-xs border px-2">
+            <span class="@(HasNewData ? "text-green-700 font-bold" : string.Empty)">
+                Has New Data: @HasNewData
+            </span>
+        </div>
+            
+        <div class="block grow-1 text-xs border px-2">
+            @SelectedParts.Count() Selected Items
+        </div>
+        
+        <div class="block grow-1 text-xs border px-2">
+        
+            <label 
+                for="groupBy" 
+                class="text-xs mt-2">
                 Group By:
             </label>
-
+        
             <TelerikDropDownList
                 Id="groupBy"
                 @bind-Value="@SelectedGroupBy"
@@ -53,10 +78,12 @@
                 Size="@ThemeConstants.DropDownList.Size.Small"
                 OnChange="@SelectedGroupByOnChange">
                 <DropDownListSettings>
-                    <DropDownListPopupSettings Height="auto"/>
+                    <DropDownListPopupSettings 
+                        AnimationDuration="0"
+                        Height="auto"/>
                 </DropDownListSettings>
             </TelerikDropDownList>
-
+        
         </div>
 
     </GridToolBarTemplate>
@@ -101,6 +128,18 @@
     private bool IsLoading { get; set; }
     
     private TelerikGrid<Part>? Grid { get; set; }
+    
+    private bool HasNewData { get; set; }
+    
+    /// <summary>
+    /// The auto refresh timer.
+    /// </summary>
+    private PeriodicTimer? _timer;
+
+    /// <summary>
+    /// The interval for the auto refresh timer in seconds.
+    /// </summary>
+    private const int TimerRefreshInterval = 10;
 
     private readonly List<PartGroupByType> _groupByTypes = new()
     {
@@ -110,6 +149,74 @@
     };
     
     private PartGroupByType SelectedGroupBy { get; set; } = PartGroupByType.None;
+    
+    private IEnumerable<Part> SelectedParts { get; set; } = new List<Part>();
+
+
+    /// <summary>
+    /// Blazor lifecycle method that fires after rendering has completed.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        
+        Console.WriteLine($"{nameof(Index)}.{nameof(OnAfterRenderAsync)} firstRender: {firstRender}");
+        
+        if (firstRender) await StartAutoRefreshTimer();
+    }
+    
+    /// <summary>
+    /// Starts the auto refresh timer.
+    /// </summary>
+    private async Task StartAutoRefreshTimer()
+    {
+        Console.WriteLine($"{nameof(Index)}.{nameof(StartAutoRefreshTimer)}");
+        
+        try
+        {
+            _timer ??= new(TimeSpan.FromSeconds(TimerRefreshInterval));
+            
+            // Periodically refresh the grids.
+            while (await _timer.WaitForNextTickAsync())
+            {
+                Console.WriteLine($"{nameof(Index)} - timer elapsed");
+                
+                // Refresh the reqs grid.
+                await TimerElapsedAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine($"{nameof(Index)} - timer canceled");
+        }
+    }
+    
+     /// <summary>
+    /// Timer event handler that refreshes the Requisitions grid.
+    /// </summary>
+    private async Task TimerElapsedAsync()
+    {
+        Console.WriteLine(
+            $"{nameof(Index)}.{nameof(TimerElapsedAsync)} - " +
+            $"IsLoading: '{IsLoading}', " + 
+            $"Time: '{DateTime.Now:HHHH:mm:ss}'");
+
+        // Don't reload if we are already currently reloading.
+        if (IsLoading) return;
+
+         HasNewData = true;
+         
+         StateHasChanged();
+
+        await Task.CompletedTask;
+    }
+
+    private void ReloadOnClick()
+    {
+        Grid?.Rebind();
+        
+        HasNewData = false;
+    }
     
     private async Task OnReadItemsAsync(GridReadEventArgs args)
     {
